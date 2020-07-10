@@ -36,6 +36,8 @@ ToMap()       // 当前行转换为 map[string]interface{}
 Get()         // 返回合适的类型到interface{}
 GetInt()      // int
 GetInt64()    // int64
+GetFloat32()  // float32
+GetFloat64()  // float64
 GetTime()     // time.Time
 GetString()   // string
 GetStruct()   // 当前行结果映射到struct

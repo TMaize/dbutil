@@ -18,6 +18,11 @@ var goTypeMap = map[string]map[string]bool{
 		"BIGINT":    true,
 		"YEAR":      true,
 	},
+	"float": {
+		"FLOAT":   true,
+		"DOUBLE":  true,
+		"DECIMAL": true,
+	},
 	"string": {
 		"CHAR":       true,
 		"VARCHAR":    true,
@@ -139,6 +144,10 @@ func (rsd *RowsData) Get(key string) (interface{}, error) {
 		return rsd.GetInt64(key)
 	}
 
+	if goTypeMap["float"][typeName] {
+		return rsd.GetFloat64(key)
+	}
+
 	if goTypeMap["string"][typeName] {
 		return rsd.GetString(key)
 	}
@@ -178,12 +187,52 @@ func (rsd *RowsData) GetInt64(key string) (int64, error) {
 		return data.(int64), nil
 	case []byte: // []uint8
 		// ASCII byte 可以直接转强为string
-		s := string(data.([]byte))
-		return strconv.ParseInt(s, 10, 64)
+		return strconv.ParseInt(string(data.([]byte)), 10, 64)
 	case nil:
 		return 0, nil
 	default:
-		return 0, errors.New("can not convert to int")
+		return 0, errors.New("can not convert to " + goType)
+	}
+}
+
+// GetFloat32 返回 float32
+func (rsd *RowsData) GetFloat32(key string) (float32, error) {
+	value, err := rsd.GetFloat64(key)
+	if err != nil {
+		return 0, err
+	}
+
+	f32, err := strconv.ParseFloat(fmt.Sprint(value), 32)
+	if err != nil {
+		return 0, err
+	}
+
+	return float32(f32), nil
+}
+
+// GetFloat64 返回 float64
+func (rsd *RowsData) GetFloat64(key string) (float64, error) {
+	data, err := rsd.getRaw(key)
+	if err != nil {
+		return 0, err
+	}
+
+	goType := "float"
+	typeName := rsd.ColumnTypes[rsd.nameIndexMap[key]].DatabaseTypeName()
+	if !goTypeMap[goType][typeName] {
+		return 0, fmt.Errorf("unsupported conversion: db(%s) => go(%s)", typeName, goType)
+	}
+
+	switch data.(type) {
+	case float32, float64:
+		return data.(float64), nil
+	case []byte: // []uint8
+		// ASCII byte 可以直接转强为string
+		return strconv.ParseFloat(string(data.([]byte)), 64)
+	case nil:
+		return 0, nil
+	default:
+		return 0, errors.New("can not convert to " + goType)
 	}
 }
 
@@ -218,7 +267,7 @@ func (rsd *RowsData) GetTime(key string) (time.Time, error) {
 		}
 		return time.Time{}, nil
 	default:
-		return time.Time{}, errors.New("can not convert to time.Time")
+		return time.Time{}, errors.New("can not convert to " + goType)
 	}
 }
 
@@ -242,7 +291,7 @@ func (rsd *RowsData) GetString(key string) (string, error) {
 	case nil:
 		return "", nil
 	default:
-		return "", errors.New("can not convert to string")
+		return "", errors.New("can not convert to " + goType)
 	}
 }
 
@@ -264,5 +313,3 @@ func (rsd *RowsData) ToMap() (map[string]interface{}, error) {
 	}
 	return rMap, nil
 }
-
-

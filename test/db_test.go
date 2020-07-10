@@ -45,7 +45,7 @@ func TestDBConn(t *testing.T) {
 func TestDBSelect(t *testing.T) {
 	t.Run("初始化连接", TestDBConn)
 
-	rsd, err := DBconn.Select("select * from `t`")
+	rsd, err := DBconn.Select("select * from `f`")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,5 +57,9 @@ func TestDBSelect(t *testing.T) {
 
 	for rsd.Next() {
 		fmt.Println(rsd.ToMap())
+		fmt.Println(rsd.GetFloat32("c1"))
+		fmt.Println(rsd.GetFloat32("c2"))
+		fmt.Println(rsd.GetFloat32("c3"))
+		fmt.Println(rsd.GetFloat32("c4"))
 	}
 }
