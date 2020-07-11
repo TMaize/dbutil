@@ -2,7 +2,6 @@
 
 简单的 sql 查询工具方法，方便做一些简单的查询映射到 Go 类型。如果受不了原生的 scan 和 不习惯 orm 框架的可以试试这个
 
-
 ```bash
 go get -u github.com/TMaize/dbutil
 ```
@@ -41,4 +40,17 @@ GetFloat64()  // float64
 GetTime()     // time.Time
 GetString()   // string
 GetStruct()   // 当前行结果映射到struct
+```
+
+## GetStruct 说明
+
+映射对象必须是 struct,传入的必须是指针类型，在映射时，会依次从：tag 中定义的 column，属性名，属性名转小写下划线命名，这三种 key 去 table 列中取值，如果未命中则该属性不会被赋值
+
+```go
+type User struct {
+  ID         int       // [ID, id]
+  Name       string    `column:"user_name"` //[user_name, Name, name]
+  Age        int       `column:"user_age"`  //[user_age, Age, age]
+  CreateTime time.Time // [CreateTime, create_time]
+}
 ```

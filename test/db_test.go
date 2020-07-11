@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -45,7 +46,7 @@ func TestDBConn(t *testing.T) {
 func TestDBSelect(t *testing.T) {
 	t.Run("初始化连接", TestDBConn)
 
-	rsd, err := DBconn.Select("select * from `f`")
+	rsd, err := DBconn.Select("select * from `demo`")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,12 +55,16 @@ func TestDBSelect(t *testing.T) {
 		t.Log("未查询到数据")
 		return
 	}
+	type User struct {
+		ID         int
+		Name       string `column:"user_name"`
+		Age        int    `column:"user_age"`
+		CreateTime time.Time
+	}
 
 	for rsd.Next() {
-		fmt.Println(rsd.ToMap())
-		fmt.Println(rsd.GetFloat32("c1"))
-		fmt.Println(rsd.GetFloat32("c2"))
-		fmt.Println(rsd.GetFloat32("c3"))
-		fmt.Println(rsd.GetFloat32("c4"))
+		u := User{}
+		fmt.Println(rsd.GetStruct(&u))
+		fmt.Printf("%+v\n", u)
 	}
 }

@@ -4,8 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/TMaize/dbutil/pkg"
 )
 
 // GO 类型对应那些 DB 类型
@@ -296,8 +299,96 @@ func (rsd *RowsData) GetString(key string) (string, error) {
 }
 
 // GetStruct 填充 struct
-func (rsd *RowsData) GetStruct(s interface{}) error {
-	// TODO 反射
+func (rsd *RowsData) GetStruct(model interface{}) error {
+	// nil无需scan
+	if model == nil {
+		return nil
+	}
+
+	value := reflect.ValueOf(model)
+
+	if value.Kind() != reflect.Ptr {
+		return errors.New("model must be pointer, type is " + value.Kind().String())
+	}
+
+	// 检查指针对应的值是否为nil
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return nil
+	}
+
+	if reflect.Indirect(value).Kind() != reflect.Struct {
+		return errors.New("model type must be struct, type is " + reflect.Indirect(value).Kind().String())
+	}
+
+	// Indirect获取指针对应的数据的类型,用于反射出属性
+	structInfo := reflect.TypeOf(reflect.Indirect(value).Interface())
+
+	// Elem 指针修改数据的引用
+	elem := value.Elem()
+
+	for i := 0; i < structInfo.NumField(); i++ {
+		// 根据struct的属性生成3个可能的值去重table列中去取
+		keys := []string{
+			structInfo.Field(i).Tag.Get("column"),
+			structInfo.Field(i).Name,
+			pkg.CamelCase2UnderScoreCase(structInfo.Field(i).Name),
+		}
+
+		var key string
+
+		for _, temp := range keys {
+			if _, ok := rsd.nameIndexMap[temp]; ok {
+				key = temp
+				break
+			}
+		}
+
+		if key == "" {
+			// fmt.Printf("search %v skip for struct(%s) skiped\n", keys, structInfo.Field(i).Name)
+			continue
+		}
+
+		// fmt.Printf("struct(%s) type is %s\n", structInfo.Field(i).Name, structInfo.Field(i).Type.String())
+
+		switch elem.Field(i).Interface().(type) {
+		case int:
+			intValue, err := rsd.GetInt(key)
+			if err != nil {
+				return err
+			}
+			elem.Field(i).Set(reflect.ValueOf(intValue))
+		case int64:
+			int64Value, err := rsd.GetInt64(key)
+			if err != nil {
+				return err
+			}
+			elem.Field(i).Set(reflect.ValueOf(int64Value))
+		case float32:
+			f32Value, err := rsd.GetFloat32(key)
+			if err != nil {
+				return err
+			}
+			elem.Field(i).Set(reflect.ValueOf(f32Value))
+		case float64:
+			f64Value, err := rsd.GetFloat64(key)
+			if err != nil {
+				return err
+			}
+			elem.Field(i).Set(reflect.ValueOf(f64Value))
+		case string:
+			sValue, err := rsd.GetString(key)
+			if err != nil {
+				return err
+			}
+			elem.Field(i).Set(reflect.ValueOf(sValue))
+		case time.Time:
+			timeValue, err := rsd.GetTime(key)
+			if err != nil {
+				return err
+			}
+			elem.Field(i).Set(reflect.ValueOf(timeValue))
+		}
+	}
 	return nil
 }
 
