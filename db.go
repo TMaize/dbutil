@@ -20,11 +20,16 @@ func (db *DBConn) Close() {
 
 // OpenMySQL 打开mysql连接
 func (db *DBConn) OpenMySQL(host string, port int, dbName, user, pwd string) error {
+	const param = "?parseTime=true&loc=Asia%2FShanghai&charset=utf8"
+	return db.OpenMySQLWithParam(host, port, dbName, user, pwd, param)
+}
+
+// OpenMySQLWithParam 自定义参数
+func (db *DBConn) OpenMySQLWithParam(host string, port int, dbName, user, pwd string, param string) error {
 	if db.DB != nil {
 		return errors.New("DBConn has been opened")
 	}
-	addr := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v", user, pwd, host, port, dbName)
-	addr += "?parseTime=true&loc=Asia%2FShanghai&charset=utf8"
+	addr := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v%s", user, pwd, host, port, dbName, param)
 	// 创建连接池信息，并不会创建连接
 	conn, err := sql.Open("mysql", addr)
 	if err != nil {
